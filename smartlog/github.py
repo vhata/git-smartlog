@@ -176,7 +176,9 @@ def parse_pull_requests(data: object, repository: GitHubRepository) -> list[Pull
         identity = parse_repository(f"{repository.host}/{owner}/{name}", explicit=True)
         if identity is None:
             continue
-        decision = item.get("reviewDecision") or ""
+        decision = item.get("reviewDecision")
+        if decision is None:
+            decision = ""
         if not isinstance(decision, str) or decision not in {"", "APPROVED", "CHANGES_REQUESTED", "REVIEW_REQUIRED"}:
             decision = "UNKNOWN REVIEW"
         result.append(PullRequest(number, branch, oid.lower(), identity, item["title"], item["url"], item["state"], decision, check_status(item.get("statusCheckRollup")), item.get("isDraft") is True))

@@ -123,8 +123,7 @@ class PullRequestParsingTests(unittest.TestCase):
 
     def test_malformed_review_is_unknown(self):
         pr, = parse_pull_requests([pull_request(reviewDecision=[])], REPO)
-        # An empty review field means no review decision.
-        self.assertEqual(pr.decision, "")
+        self.assertEqual(pr.decision, "UNKNOWN REVIEW")
         pr, = parse_pull_requests([pull_request(reviewDecision=["APPROVED"])], REPO)
         self.assertEqual(pr.decision, "UNKNOWN REVIEW")
 

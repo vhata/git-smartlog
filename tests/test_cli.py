@@ -47,7 +47,7 @@ class FakeRepo:
         if args[:2] == ("symbolic-ref", "--quiet"):
             return self.current
         if args[0] == "show":
-            return "\n".join(f"{oid}\x00{self.dates[oid]}" for oid in args[3:-1])
+            return "\n".join(f"{oid}\x00{self.dates[oid]}" for oid in args if oid in self.dates)
         raise AssertionError(args)
 
 
@@ -83,6 +83,10 @@ class BaseSelectionTests(unittest.TestCase):
         with self.assertRaises(ConfigurationError):
             select_base(repo, config("[remote]\nhead"), None, [])
 
+    def test_explicit_branch_wins_over_same_named_tag(self):
+        repo = FakeRepo([ref("refs/tags/main", B), ref("refs/heads/main", C)])
+        self.assertEqual(select_base(repo, config(), "main", [])[:2], ("refs/heads/main", C))
+
     def test_unborn_with_other_branches(self):
         repo = FakeRepo([ref("refs/heads/topic", B)], head=None)
         self.assertEqual(select_base(repo, config(), None, []), ("refs/heads/topic", B, True))
@@ -114,6 +118,9 @@ class ConfigAndSelectionTests(unittest.TestCase):
         self.assertEqual(skipped, 1)
         self.assertIn("HEAD -> topic", labels[A])
         self.assertEqual(sum(args[0] == "show" for args in repo.commands), 1)
+        date_query = next(args for args in repo.commands if args[0] == "show")
+        for option in ("--no-show-signature", "--no-notes", "--no-decorate"):
+            self.assertIn(option, date_query)
         tips, _, skipped = selected_tips(repo, config(), B, include_all=False, days=14, now=2000000)
         self.assertEqual(tips, [A, B, C])
         self.assertEqual(skipped, 0)

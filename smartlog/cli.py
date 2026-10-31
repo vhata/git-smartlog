@@ -103,10 +103,10 @@ def select_base(repo: object, config: configparser.ConfigParser, explicit: str |
     if requested is not None:
         if not requested.strip() or requested.startswith("-"):
             raise ConfigurationError("base must name a branch or commit")
-        oid = repo.resolve(requested)
+        ref = _find_ref(repo.refs, requested)
+        oid = repo.resolve(ref.name if ref is not None else requested)
         if oid is None:
             raise ConfigurationError(f"cannot resolve base '{_safe(requested)}'; choose an existing branch with --base")
-        ref = _find_ref(repo.refs, requested)
         return ref.name if ref is not None else requested, oid, False
     refs = {ref.name: ref for ref in repo.refs}
     for remote in remotes:
@@ -178,7 +178,7 @@ def selected_tips(repo: object, config: configparser.ConfigParser, base: str, *,
     skipped = 0
     if not include_all and candidates - required:
         # A batch avoids starting a Git process for every branch.
-        rows = repo.run("show", "-s", "--format=%H%x00%ct", *sorted(candidates - required), "--")
+        rows = repo.run("show", "-s", "--no-show-signature", "--no-notes", "--no-decorate", "--format=%H%x00%ct", *sorted(candidates - required), "--")
         dates = {}
         for row in rows.splitlines():
             oid, separator, timestamp = row.partition("\x00")
@@ -257,7 +257,7 @@ def _run(args: argparse.Namespace) -> int:
     color = args.color == "always" or (args.color == "auto" and "NO_COLOR" not in os.environ and os.environ.get("TERM") != "dumb" and sys.stdout.isatty())
     rendered = render_graph(graph, labels=labels, head=repo.head, color=color, ascii=args.ascii, annotations=annotations)
     if rendered:
-        print(rendered, end="" if rendered.endswith("\n") else "\n")
+        print(rendered, end="" if rendered.endswith("\n") else "\n", flush=True)
     if skipped:
         warn(f"skipped {skipped} old branch tip{'s' if skipped != 1 else ''}; use --all to include them.")
     return 0
