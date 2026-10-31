@@ -1,2 +1,1 @@
-gitpython
-colorama
+# No third-party runtime packages are required. Install Python 3.10+ and Git.
