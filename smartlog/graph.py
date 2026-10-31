@@ -111,7 +111,7 @@ def _read_commits(repo, oids):
                     timestamp = int(stamp)
                 except ValueError:
                     timestamp = 0
-        subject = message.splitlines()[0] if message.splitlines() else "(no commit message)"
+        subject = message.split("\n", 1)[0] if message else "(no commit message)"
         commits[expected] = Commit(
             expected, author, email, timestamp, subject, message, tuple(parents),
         )

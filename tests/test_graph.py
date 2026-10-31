@@ -143,3 +143,8 @@ class GraphTests(unittest.TestCase):
         graph = build_graph(repo, self.r, [child])
         self.assertEqual(graph.commits[child].subject, "child")
         self.assertEqual(graph.commits[child].email, "fixture@example.test")
+
+    def test_commit_subject_keeps_unicode_separator_for_safe_rendering(self):
+        child = self.f.commit("before\u2028after", self.r)
+        graph = self.graph(self.r, [child])
+        self.assertEqual(graph.commits[child].subject, "before\u2028after")

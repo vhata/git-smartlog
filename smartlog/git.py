@@ -41,8 +41,8 @@ class Repository:
 
     def __init__(self, path="."):
         self.cwd = Path(path).resolve()
-        self.git_dir = Path(self.run("rev-parse", "--absolute-git-dir").strip())
-        common = self.run("rev-parse", "--git-common-dir").strip()
+        self.git_dir = Path(self.run("rev-parse", "--absolute-git-dir").removesuffix("\n"))
+        common = self.run("rev-parse", "--git-common-dir").removesuffix("\n")
         self.common_dir = (self.cwd / common).resolve()
         self.head = self.resolve("HEAD")
         self.refs = self._read_refs()

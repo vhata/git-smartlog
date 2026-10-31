@@ -11,7 +11,7 @@ def safe_text(value):
     result = []
     for char in str(value):
         code = ord(char)
-        if unicodedata.category(char) in {"Cc", "Cs", "Cf"}:
+        if unicodedata.category(char) in {"Cc", "Cs", "Cf", "Zl", "Zp"}:
             if code <= 0xFF:
                 result.append(f"\\x{code:02x}")
             elif code <= 0xFFFF:

@@ -71,3 +71,17 @@ class RepositoryTests(unittest.TestCase):
         self.assertEqual(repo.common_dir, self.fixture.path / ".git")
         self.assertNotEqual(repo.git_dir, repo.common_dir)
         self.assertEqual(repo.head, root)
+
+    def test_unicode_line_separator_in_ref_does_not_split_record(self):
+        root = self.fixture.commit("root")
+        self.fixture.ref("refs/heads/topic\u2028name", root)
+        refs = Repository(self.fixture.path).refs
+        self.assertEqual([(ref.name, ref.oid) for ref in refs],
+                         [("refs/heads/topic\u2028name", root)])
+
+    def test_git_directory_path_preserves_trailing_space(self):
+        separate = self.fixture.path / "metadata "
+        self.fixture.git("init", "--separate-git-dir", str(separate))
+        repo = Repository(self.fixture.path)
+        self.assertEqual(repo.git_dir, separate)
+        self.assertEqual(repo.common_dir, separate)

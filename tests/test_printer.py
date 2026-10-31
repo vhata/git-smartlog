@@ -25,7 +25,7 @@ class PrinterTests(unittest.TestCase):
     def test_sanitizes_all_untrusted_metadata(self):
         oid = "a" * 40
         graph = Graph({oid: Commit(oid, "author", "a\x1b[31m@evil", 0,
-                                  "hello\rworld\x1b]0;title\a", "message")},
+                                  "hello\rworld\x1b]0;title\a\u2028end", "message")},
                       {oid: ()}, [oid])
         output = render_graph(graph, labels={oid: ["main\x1b[2J"]}, head=oid,
                               annotations={oid: ["PR\u202evil"]})
@@ -33,6 +33,7 @@ class PrinterTests(unittest.TestCase):
         self.assertNotIn("\r", output)
         self.assertIn("\\x1b", output)
         self.assertIn("\\u202e", output)
+        self.assertIn("\\u2028end", output)
 
     def test_keeps_differential_revision_and_colors_head_summary(self):
         oid = "a" * 40
