@@ -18,13 +18,14 @@ rejects merges, and its recursive printer can hide selected commits
 inside long chains. Reference detection also assumes a configured
 remote default. There were no automated tests.
 
-## Dragon changes
+## [Jennifer Taylor][jennifer-taylor]'s changes
 
-The comparison is against `DragonMinded/git-smartlog` at `0ff88ae`,
-with the original implementation at `1db2182`. The useful behaviors
-are retained in the new implementation, with the following changes.
+The comparison is against
+[Jennifer Taylor's repository][jennifer-taylor] at `0ff88ae`, with the
+original implementation at `1db2182`. The useful behaviors are retained
+in the new implementation, with the following changes.
 
-| Dragon commit | Contribution | Implementation decision |
+| Commit | Contribution | Implementation decision |
 | --- | --- | --- |
 | `c6132a7` | Common default branch names | Support cached remote defaults and local names, including `develop`. |
 | `7be7e51` | GitHub PR metadata | Optional `--github`; bind metadata to the correct repository and branch. |
@@ -40,11 +41,11 @@ are retained in the new implementation, with the following changes.
 | `9083655` | Last-parent merge traversal | Replace with a directed acyclic graph preserving all parents. |
 | `0ff88ae` | Merge the original upstream | No additional independent feature. |
 
-Dragon removes the `HEAD ->` label and Differential Revision annotation.
-Both are useful existing behavior and remain supported. Its default
-remote probing and GitHub calls have no timeout; the new normal command
-is offline, and optional GitHub queries are bounded and may fail without
-preventing local graph output.
+Her implementation removes the `HEAD ->` label and Differential Revision
+annotation. Both are useful existing behavior and remain supported. Its
+default remote probing and GitHub calls have no timeout; the new normal
+command is offline, and optional GitHub queries are bounded and may fail
+without preventing local graph output.
 
 ## Why merge traversal changed
 
@@ -78,3 +79,5 @@ Live GitHub authentication and service availability depend on the user's
 behavior, not live account access. Graph work can still grow with a
 large amount of unmerged work or widely separated relevant branch
 points; the display limit is not a hard cap on Git history processing.
+
+[jennifer-taylor]: https://github.com/DragonMinded/git-smartlog

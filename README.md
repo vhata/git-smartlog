@@ -159,6 +159,9 @@ account or hosted service.
 PYTHON=python3 bash scripts/check.sh
 ```
 
-See [the design and Dragon comparison](docs/design.md) for upstream
-features, compatibility decisions and the merge traversal defect that
-motivated the graph rewrite.
+See the [design comparison](docs/design.md) with
+[Jennifer Taylor's repository][jennifer-taylor] for upstream features,
+compatibility decisions and the merge traversal defect that motivated
+the graph rewrite.
+
+[jennifer-taylor]: https://github.com/DragonMinded/git-smartlog
