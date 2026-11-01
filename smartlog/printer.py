@@ -67,6 +67,7 @@ def render_graph(graph, *, labels, head, color=False, ascii=False, annotations=N
 
     Lanes represent each node's first visible parent. Additional parents are
     named explicitly so octopus merges and crossing edges remain unambiguous.
+    A contracted secondary edge names an ancestor rather than a direct parent.
     Dotted primary connectors and ``...`` arrows denote contracted history.
     """
     if not graph.commits:
@@ -116,7 +117,8 @@ def render_graph(graph, *, labels, head, color=False, ascii=False, annotations=N
             target = abbreviations[parent]
             if target_names:
                 target += " (" + ", ".join(safe_text(name) for name in sorted(set(target_names))) + ")"
-            result.append(f"{arrow} merge parent {target}")
+            relation = "ancestor" if (oid, parent) in graph.collapsed else "merge parent"
+            result.append(f"{arrow} {relation} {target}")
         result.extend(safe_text(value) for value in annotations.get(oid, ()))
         return result
 

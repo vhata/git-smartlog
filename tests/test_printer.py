@@ -79,3 +79,12 @@ class PrinterTests(unittest.TestCase):
         graph = Graph({oid: value}, {oid: ()}, [oid])
         output = render_graph(graph, labels={}, head=oid, ascii=True)
         self.assertIn("*  " + oid[:12] + "  ", output)
+
+    def test_contracted_secondary_edge_is_named_as_ancestor(self):
+        a, b, c = "a" * 40, "b" * 40, "c" * 40
+        graph = Graph({oid: commit(oid) for oid in (a, b, c)},
+                      {c: (a, b), a: (), b: ()}, [c, a, b],
+                      collapsed=frozenset({(c, b)}))
+        output = render_graph(graph, labels={}, head=c, ascii=True)
+        self.assertIn("...> ancestor bbbbbbb", output)
+        self.assertNotIn("merge parent bbbbbbb", output)

@@ -139,6 +139,10 @@ class GraphTests(unittest.TestCase):
 
     def test_legacy_display_git_config_cannot_pollute_objects(self):
         child = self.f.commit("child", self.r)
+        config = self.f.path / ".git" / "config"
+        with config.open("a") as stream:
+            stream.write("\n[log]\n\tshowSignature = true\n\tshowNotes = true\n\tdecorate = true\n")
+        self.f.git("notes", "add", "-m", "This note must not enter commit metadata", child)
         repo = Repository(self.f.path)
         graph = build_graph(repo, self.r, [child])
         self.assertEqual(graph.commits[child].subject, "child")
