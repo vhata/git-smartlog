@@ -87,6 +87,10 @@ class BaseSelectionTests(unittest.TestCase):
         repo = FakeRepo([ref("refs/tags/main", B), ref("refs/heads/main", C)])
         self.assertEqual(select_base(repo, config(), "main", [])[:2], ("refs/heads/main", C))
 
+    def test_unicode_whitespace_is_a_valid_explicit_ref(self):
+        repo = FakeRepo([ref("refs/heads/\u2000", B)])
+        self.assertEqual(select_base(repo, config(), "\u2000", [])[:2], ("refs/heads/\u2000", B))
+
     def test_unborn_with_other_branches(self):
         repo = FakeRepo([ref("refs/heads/topic", B)], head=None)
         self.assertEqual(select_base(repo, config(), None, []), ("refs/heads/topic", B, True))
@@ -260,6 +264,22 @@ class CLIIntegrationTests(unittest.TestCase):
         proc = self.run_cli(cwd=worktree)
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("Feature", proc.stdout)
+
+    def test_unicode_ref_and_remote_names_are_not_trimmed_or_split(self):
+        self.commit("initial")
+        branch = "topic\u2000"
+        remote = "team\u2028one"
+        self.git("checkout", "-qb", branch)
+        oid = self.commit("unicode branch")
+        self.git("remote", "add", remote, str(self.root / "unused-remote.git"))
+        target = f"refs/remotes/{remote}/release"
+        self.git("update-ref", target, oid)
+        self.git("symbolic-ref", f"refs/remotes/{remote}/HEAD", target)
+        proc = self.run_cli("--all")
+        self.assertEqual(proc.returncode, 0, proc.stderr)
+        self.assertIn("HEAD -> " + branch, proc.stdout)
+        self.assertIn(remote + "/release", proc.stdout)
+        self.assertNotIn("using HEAD", proc.stderr)
 
     def test_bare_repository(self):
         self.commit("bare example")

@@ -98,10 +98,10 @@ def select_base(repo: object, config: configparser.ConfigParser, explicit: str |
     requested = explicit
     if requested is None and config.has_option("remote", "head"):
         requested = config.get("remote", "head")
-        if requested is None or not requested.strip():
+        if requested is None or not requested:
             raise ConfigurationError("[remote] head must name a branch or commit")
     if requested is not None:
-        if not requested.strip() or requested.startswith("-"):
+        if not requested or requested.startswith("-"):
             raise ConfigurationError("base must name a branch or commit")
         ref = _find_ref(repo.refs, requested)
         oid = repo.resolve(ref.name if ref is not None else requested)
@@ -139,7 +139,7 @@ def selected_tips(repo: object, config: configparser.ConfigParser, base: str, *,
     candidates = set()
     current_name = None
     try:
-        current_name = repo.run("symbolic-ref", "--quiet", "HEAD").strip()
+        current_name = repo.run("symbolic-ref", "--quiet", "HEAD").rstrip("\n")
     except Exception as exc:
         # Detached HEAD is an expected nonzero symbolic-ref result. Other Git
         # errors will still be reported by subsequent required operations.
@@ -203,7 +203,7 @@ def _annotations(repo: object, args: argparse.Namespace, remote_names: Sequence[
     identities = {}
     for remote in remote_names:
         try:
-            url = repo.run("remote", "get-url", remote).strip()
+            url = repo.run("remote", "get-url", remote).rstrip("\n")
         except GitError:
             continue
         identity = parse_repository(url)
@@ -222,7 +222,7 @@ def _annotations(repo: object, args: argparse.Namespace, remote_names: Sequence[
         # the explicit repository proves the host is intended for GitHub use.
         for remote in remote_names:
             try:
-                url = repo.run("remote", "get-url", remote).strip()
+                url = repo.run("remote", "get-url", remote).rstrip("\n")
             except GitError:
                 continue
             identity = parse_repository(url, explicit=True)
@@ -243,7 +243,7 @@ def _run(args: argparse.Namespace) -> int:
     if repo.head is None and not repo.refs and args.base is None and not config.has_option("remote", "head"):
         print("No commits yet.")
         return 0
-    remotes = ordered_remotes(repo.run("remote").splitlines())
+    remotes = ordered_remotes(name for name in repo.run("remote").split("\n") if name)
     base_name, base_oid, fallback = select_base(repo, config, args.base, remotes)
     if fallback:
         warn(f"using {short_ref(base_name)} as the base; use --base to choose another reference.")
