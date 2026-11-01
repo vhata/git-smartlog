@@ -39,7 +39,7 @@ def parser() -> argparse.ArgumentParser:
     result.add_argument("-a", "--all", action="store_true", help="include branch tips of every age (does not disable --limit)")
     result.add_argument("--base", metavar="REF", help="base branch or commit (overrides [remote] head in .git/smartlog)")
     result.add_argument("--days", type=_nonnegative, default=14, metavar="N", help="include branch tips updated within N days (default: 14)")
-    result.add_argument("--limit", type=_nonnegative, default=20, metavar="N", help="maximum commits in each unbranched run; 0 keeps all (default: 20)")
+    result.add_argument("--limit", type=_nonnegative, default=20, metavar="N", help="limit interior commits in unbranched topic runs; 0 keeps all (default: 20)")
     result.add_argument("--color", choices=("auto", "always", "never"), default="auto", help="color output (default: auto; honors NO_COLOR)")
     result.add_argument("--ascii", action="store_true", help="use ASCII graph characters")
     result.add_argument("--github", action="store_true", help="fetch optional PR/check annotations using gh (network access)")
@@ -59,18 +59,52 @@ def warn(message: str) -> None:
 
 
 def load_config(repo: object) -> configparser.ConfigParser:
-    config = configparser.ConfigParser(allow_no_value=True, interpolation=None)
-    config.optionxform = str  # Branch names are case-sensitive.
+    def new_parser():
+        result = configparser.ConfigParser(allow_no_value=True, interpolation=None)
+        result.optionxform = str  # Branch names are case-sensitive.
+        return result
+
+    config = new_parser()
     paths = [Path(repo.common_dir) / "smartlog"]
     local = Path(repo.git_dir) / "smartlog"
     if local != paths[0]:
         paths.append(local)
     for path in paths:
+        source = new_parser()
         try:
             with path.open(encoding="utf-8") as stream:
-                config.read_file(stream, source=str(path))
+                source.read_file(stream, source=str(path))
+            # Normalize settings per file before overlaying it. This keeps the
+            # legacy case-insensitive [remote] Head spelling and lets a private
+            # worktree setting override a differently capitalized shared one.
+            # Keep inherited defaults distinct from explicit options, so a
+            # later worktree DEFAULT can still override a shared default.
+            defaults = {}
+            for name, value in tuple(source.defaults().items()):
+                key = name.lower()
+                if key in defaults:
+                    raise configparser.DuplicateOptionError(source.default_section, key, str(path))
+                defaults[key] = value
+                source.remove_option(source.default_section, name)
+            sections = {section: dict(source[section]) for section in source.sections()}
+            sections[source.default_section] = defaults
+            if "remote" in sections:
+                normalized = {}
+                for name, value in sections["remote"].items():
+                    key = name.lower()
+                    if key in normalized:
+                        raise configparser.DuplicateOptionError("remote", key, str(path))
+                    normalized[key] = value
+                sections["remote"] = normalized
+            config.read_dict(sections, source=str(path))
         except FileNotFoundError:
             continue
+        except AttributeError as exc:
+            # Python 3.10-3.12's ConfigParser raises AttributeError for an
+            # indented continuation following a valueless option.
+            raise ConfigurationError(
+                f"cannot read {_safe(path)}: a valueless option cannot have continuation lines"
+            ) from exc
         except (OSError, UnicodeError, configparser.Error) as exc:
             raise ConfigurationError(f"cannot read {_safe(path)}: {_safe(exc)}") from exc
     return config

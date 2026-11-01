@@ -109,6 +109,36 @@ class ConfigAndSelectionTests(unittest.TestCase):
             self.assertEqual(result.get("remote", "head"), "develop")
             self.assertEqual(list(result["extra_refs"]), ["origin/Feature%Done"])
 
+    def test_remote_option_case_is_legacy_compatible_across_worktrees(self):
+        with tempfile.TemporaryDirectory() as directory:
+            common, local = Path(directory) / "common", Path(directory) / "local"
+            common.mkdir()
+            local.mkdir()
+            (common / "smartlog").write_text("[remote]\nhead=main\n", encoding="utf-8")
+            (local / "smartlog").write_text("[remote]\nHead=develop\n[extra_refs]\norigin/Feature\n", encoding="utf-8")
+            settings = load_config(SimpleNamespace(common_dir=common, git_dir=local))
+            self.assertEqual(settings.get("remote", "head"), "develop")
+            self.assertEqual(list(settings["extra_refs"]), ["origin/Feature"])
+
+    def test_worktree_defaults_remain_inherited(self):
+        with tempfile.TemporaryDirectory() as directory:
+            common, local = Path(directory) / "common", Path(directory) / "local"
+            common.mkdir()
+            local.mkdir()
+            (common / "smartlog").write_text("[DEFAULT]\nHead=main\n[remote]\n", encoding="utf-8")
+            (local / "smartlog").write_text("[DEFAULT]\nHEAD=develop\n", encoding="utf-8")
+            settings = load_config(SimpleNamespace(common_dir=common, git_dir=local))
+            self.assertEqual(settings.get("remote", "head"), "develop")
+
+    def test_duplicate_remote_keys_and_valueless_continuation_are_errors(self):
+        with tempfile.TemporaryDirectory() as directory:
+            path = Path(directory) / "smartlog"
+            for content in ("[remote]\nHead=main\nhead=develop\n", "[extra_refs]\norigin/Feature\n  indented continuation\n"):
+                with self.subTest(content=content):
+                    path.write_text(content, encoding="utf-8")
+                    with self.assertRaises(ConfigurationError):
+                        load_config(SimpleNamespace(common_dir=directory, git_dir=directory))
+
     def test_bad_config_is_actionable(self):
         with tempfile.TemporaryDirectory() as directory:
             (Path(directory) / "smartlog").write_text("not an ini file", encoding="utf-8")
@@ -278,7 +308,8 @@ class CLIIntegrationTests(unittest.TestCase):
         proc = self.run_cli("--all")
         self.assertEqual(proc.returncode, 0, proc.stderr)
         self.assertIn("HEAD -> " + branch, proc.stdout)
-        self.assertIn(remote + "/release", proc.stdout)
+        self.assertIn("team\\u2028one/release", proc.stdout)
+        self.assertNotIn("\u2028", proc.stdout)
         self.assertNotIn("using HEAD", proc.stderr)
 
     def test_bare_repository(self):
