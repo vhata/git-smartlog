@@ -56,11 +56,13 @@ included. A selected branch tip remains visible even when it lies in
 the middle of a long chain. Dates describe commits, not the last time
 a branch name moved.
 
-The display highlights HEAD with `*` and `HEAD -> branch` (or `HEAD`
-when detached). Commit lines include an abbreviated hash, author,
-refs, relative date and subject. Phabricator `Differential Revision:`
-trailers are also displayed. Sparse connections mark omitted history;
-additional merge parents have explicit references to their graph nodes.
+The display highlights HEAD with `●` (`*` in ASCII mode) and
+`HEAD -> branch` (or `HEAD` when detached). Commit lines include an
+abbreviated hash, author, refs, relative date and subject. Phabricator `Differential Revision:`
+trailers are also displayed. Lanes follow the first visible parent.
+`:` marks omitted history;
+additional direct merge parents use named arrows, and `...> ancestor`
+marks an additional connection through omitted history.
 
 The graph is read-only. It does not fetch branches or change your
 index, working tree, refs or configuration. A shallow clone can only
@@ -96,9 +98,10 @@ origin/release/Next
 refs/tags/v1.0
 ```
 
-Ref names are case-sensitive. Extra refs do not need values. Missing
-extra or tracking refs produce a warning and leave the other branches
-usable. Extra refs follow the age filter; use `--all` to include old
+Ref names are case-sensitive. Extra refs do not need values. INI syntax
+trims surrounding whitespace; use `--base` for a ref containing leading
+or trailing Unicode whitespace. Missing extra or tracking refs produce
+a warning and leave the other branches usable. Extra refs follow the age filter; use `--all` to include old
 ones.
 
 Linked worktrees read `smartlog` from the common Git directory, then
