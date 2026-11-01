@@ -73,6 +73,8 @@ def render_graph(graph, *, labels, head, color=False, ascii=False, annotations=N
         return ""
     annotations = annotations or {}
     abbreviations = _abbreviations(graph.commits)
+    abbreviations.update({oid: commit.abbrev for oid, commit in graph.commits.items()
+                          if commit.abbrev})
     children = defaultdict(list)
     roots = []
     for oid, parents in graph.parents.items():

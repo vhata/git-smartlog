@@ -71,3 +71,11 @@ class PrinterTests(unittest.TestCase):
         self.assertEqual(format_commit_date(940, now=1000), "1 minute ago")
         self.assertEqual(format_commit_date(1000, now=1000), "just now")
         self.assertEqual(format_commit_date(0, now=10000000), "1970-01-01")
+
+    def test_renderer_uses_git_verified_abbreviation(self):
+        oid = "123456789abcdef" + "0" * 25
+        value = Commit(oid, "Author", "author@example.test", 0, "subject", "subject",
+                       abbrev=oid[:12])
+        graph = Graph({oid: value}, {oid: ()}, [oid])
+        output = render_graph(graph, labels={}, head=oid, ascii=True)
+        self.assertIn("*  " + oid[:12] + "  ", output)

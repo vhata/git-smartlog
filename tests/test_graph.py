@@ -148,3 +148,24 @@ class GraphTests(unittest.TestCase):
         child = self.f.commit("before\u2028after", self.r)
         graph = self.graph(self.r, [child])
         self.assertEqual(graph.commits[child].subject, "before\u2028after")
+
+    def test_abbreviations_honor_repository_configuration(self):
+        config = self.f.path / ".git" / "config"
+        with config.open("a") as stream:
+            stream.write("\n[core]\n\tabbrev = 12\n")
+        child = self.f.commit("child", self.r)
+        graph = self.graph(self.r, [child])
+        self.assertEqual(graph.commits[child].abbrev, child[:12])
+
+    def test_abbreviation_avoids_collision_with_hidden_blob(self):
+        # Fixed metadata makes these SHA-1 object prefixes reproducible.
+        target = self.f.commit("abbreviation target", timestamp=1000000000)
+        blob = self.f.git("hash-object", "-w", "--stdin", input=b"collision-49302").strip()
+        self.assertEqual(target[:4], blob[:4])
+        self.assertNotEqual(target[:5], blob[:5])
+        config = self.f.path / ".git" / "config"
+        with config.open("a") as stream:
+            stream.write("\n[core]\n\tabbrev = 4\n")
+        graph = self.graph(target)
+        self.assertEqual(graph.commits[target].abbrev, target[:5])
+        self.assertEqual(Repository(self.f.path).resolve(graph.commits[target].abbrev), target)

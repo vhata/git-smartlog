@@ -17,6 +17,7 @@ class Commit:
     subject: str
     message: str
     original_parents: tuple[str, ...] = ()
+    abbrev: str = ""
 
 
 @dataclass
@@ -76,6 +77,14 @@ def _read_commits(repo, oids):
         ("cat-file", "--batch"),
         input=("\n".join(oids) + "\n").encode("ascii"),
     ).stdout
+    # Git knows about collisions with omitted commits, trees and blobs too.
+    # Passing revisions through stdin avoids argv limits with many branches.
+    abbreviated = repo._execute(
+        ("log", "--no-walk=unsorted", "--format=%H%x00%h", "--no-notes",
+         "--no-show-signature", "--no-decorate", "--stdin"),
+        input=("\n".join(oids) + "\n").encode("ascii"),
+    ).stdout.decode("ascii")
+    abbreviations = dict(line.split("\x00", 1) for line in abbreviated.splitlines())
     commits, offset = {}, 0
     for expected in oids:
         end = output.find(b"\n", offset)
@@ -114,6 +123,7 @@ def _read_commits(repo, oids):
         subject = message.split("\n", 1)[0] if message else "(no commit message)"
         commits[expected] = Commit(
             expected, author, email, timestamp, subject, message, tuple(parents),
+            abbreviations[expected],
         )
     return commits
 
